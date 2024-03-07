@@ -10,7 +10,7 @@ import type StorageProvider from './types';
 import utils from '../../utils';
 import type {KeyList, KeyValuePairList} from './types';
 
-console.log('OPSQLiteStorage.ts');
+console.log('OPSQLiteStorage.ts', 'Pragmas tweaks');
 
 const DB_NAME = 'OnyxDB';
 const db = open({name: DB_NAME});
@@ -22,6 +22,10 @@ db.execute('CREATE TABLE IF NOT EXISTS keyvaluepairs (record_key TEXT NOT NULL P
 db.execute('PRAGMA CACHE_SIZE=-20000;');
 db.execute('PRAGMA synchronous=NORMAL;');
 db.execute('PRAGMA journal_mode=WAL;');
+
+// OP perf tweaks
+db.execute('PRAGMA mmap_size=268435456');
+db.execute('PRAGMA journal_mode = MEMORY;'); // or OFF
 
 const provider: StorageProvider = {
     getItem(key) {
