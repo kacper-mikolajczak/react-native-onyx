@@ -1,3 +1,4 @@
-import SQLiteStorage from './providers/SQLiteStorage';
+// import SQLiteStorage from './providers/SQLiteStorage';
+import OPSQLiteStorage from './providers/OPSQLiteStorage';
 
-export default SQLiteStorage;
+export default OPSQLiteStorage;
