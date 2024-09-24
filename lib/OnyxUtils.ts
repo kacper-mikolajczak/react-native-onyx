@@ -493,6 +493,10 @@ function tryGetCachedValue<TKey extends OnyxKey>(key: TKey, mapping?: Partial<Ma
         val = values;
     }
 
+    if (mapping?.collectionSelector && isCollectionKey(key)) {
+        return mapping.collectionSelector(val as OnyxCollection<KeyValueMapping[TKey]>);
+    }
+
     if (mapping?.selector) {
         const state = mapping.withOnyxInstance ? mapping.withOnyxInstance.state : undefined;
         if (isCollectionKey(key)) {

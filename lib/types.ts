@@ -339,6 +339,8 @@ type WithOnyxConnectOptions<TKey extends OnyxKey> = ConnectOptions<TKey> & {
      */
     selector?: Selector<TKey, unknown, unknown>;
 
+    collectionSelector?: (collection: OnyxCollection<KeyValueMapping[TKey]>) => unknown;
+
     /** Determines if this key in this subscription is safe to be evicted. */
     canEvict?: boolean;
 };

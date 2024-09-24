@@ -5,7 +5,7 @@ import OnyxCache from './OnyxCache';
 import type {Connection} from './OnyxConnectionManager';
 import connectionManager from './OnyxConnectionManager';
 import OnyxUtils from './OnyxUtils';
-import type {CollectionKeyBase, OnyxCollection, OnyxEntry, OnyxKey, OnyxValue, Selector} from './types';
+import type {CollectionKeyBase, KeyValueMapping, OnyxCollection, OnyxEntry, OnyxKey, OnyxValue, Selector} from './types';
 import useLiveRef from './useLiveRef';
 import usePrevious from './usePrevious';
 
@@ -41,6 +41,8 @@ type UseOnyxSelectorOption<TKey extends OnyxKey, TReturnValue> = {
      * cause the component to re-render (and that can be expensive from a performance standpoint).
      */
     selector?: Selector<TKey, unknown, TReturnValue>;
+
+    collectionSelector?: (collection: OnyxCollection<KeyValueMapping[TKey]>) => TReturnValue;
 };
 
 type UseOnyxOptions<TKey extends OnyxKey, TReturnValue> = BaseUseOnyxOptions & UseOnyxInitialValueOption<TReturnValue> & UseOnyxSelectorOption<TKey, TReturnValue>;
@@ -57,8 +59,12 @@ type ResultMetadata = {
 
 type UseOnyxResult<TKey extends OnyxKey, TValue> = [CachedValue<TKey, TValue>, ResultMetadata];
 
-function getCachedValue<TKey extends OnyxKey, TValue>(key: TKey, selector?: Selector<TKey, unknown, unknown>): CachedValue<TKey, TValue> | undefined {
-    return (OnyxUtils.tryGetCachedValue(key, {selector}) ?? undefined) as CachedValue<TKey, TValue> | undefined;
+function getCachedValue<TKey extends OnyxKey, TValue>(
+    key: TKey,
+    selector?: Selector<TKey, unknown, unknown>,
+    collectionSelector?: (collection: OnyxCollection<KeyValueMapping[TKey]>) => unknown,
+): CachedValue<TKey, TValue> | undefined {
+    return (OnyxUtils.tryGetCachedValue(key, {selector, collectionSelector}) ?? undefined) as CachedValue<TKey, TValue> | undefined;
 }
 
 function useOnyx<TKey extends OnyxKey, TReturnValue = OnyxValue<TKey>>(
@@ -75,6 +81,8 @@ function useOnyx<TKey extends OnyxKey, TReturnValue = OnyxValue<TKey>>(key: TKey
 
     // Used to stabilize the selector reference and avoid unnecessary calls to `getSnapshot()`.
     const selectorRef = useLiveRef(options?.selector);
+
+    const collectionSelectorRef = useLiveRef(options?.collectionSelector);
 
     // Stores the previous cached value as it's necessary to compare with the new value in `getSnapshot()`.
     // We initialize it to `null` to simulate that we don't have any value from cache yet.
@@ -154,7 +162,7 @@ function useOnyx<TKey extends OnyxKey, TReturnValue = OnyxValue<TKey>>(key: TKey
             // If `newValueRef.current` is `null` or any other value it means that the cache does have a value for that key.
             // This difference between `undefined` and other values is crucial and it's used to address the following
             // conditions and use cases.
-            newValueRef.current = getCachedValue<TKey, TReturnValue>(key, selectorRef.current);
+            newValueRef.current = getCachedValue<TKey, TReturnValue>(key, selectorRef.current, collectionSelectorRef.current);
 
             // We set this flag to `false` again since we don't want to get the newest cached value every time `getSnapshot()` is executed,
             // and only when `Onyx.connect()` callback is fired.
@@ -203,7 +211,7 @@ function useOnyx<TKey extends OnyxKey, TReturnValue = OnyxValue<TKey>>(key: TKey
         }
 
         return resultRef.current;
-    }, [key, selectorRef, options?.allowStaleData, options?.initialValue]);
+    }, [key, options?.allowStaleData, options?.initialValue, selectorRef, collectionSelectorRef]);
 
     const subscribe = useCallback(
         (onStoreChange: () => void) => {
